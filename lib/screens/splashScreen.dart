@@ -2,9 +2,12 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:async';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'homeScreen.dart';
+import 'login.dart';
 
 class ParaSplashScreen extends StatefulWidget {
   @override
@@ -39,6 +42,32 @@ class _ParaSplashScreenState extends State<ParaSplashScreen>
     _setupGlowEffect();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _playSound();
+    });
+    _checkAuthStatus();
+  }
+
+  void _checkAuthStatus() {
+    // Wait for 5 seconds
+    Timer(const Duration(seconds: 5), () {
+      // Check if the widget is still mounted before navigating
+      if (!mounted) return;
+
+      // Check the current Firebase user
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        // If user is not logged in, go to the Login Page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const PaaraLoginPage()),
+        );
+      } else {
+        // If user is logged in, go to the Home Screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ParaHomeScreen()),
+        );
+      }
     });
   }
 

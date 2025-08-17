@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:async';
@@ -5,6 +6,7 @@ import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'Kform.dart';
+import 'login.dart';
 
 class ParaHomeScreen extends StatefulWidget {
   final String username;
@@ -20,6 +22,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
   List<ParticleData> _particles = [];
   int _selectedTabIndex = 0;
   bool _isLoaded = false;
+  User? _currentUser;
 
   late AnimationController _particleController;
   late AnimationController _smokeController;
@@ -35,6 +38,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
   @override
   void initState() {
     super.initState();
+    _currentUser = FirebaseAuth.instance.currentUser;
     _initializeAnimations();
     _initializeParticles();
     _startAnimations();
@@ -117,6 +121,16 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
     _fadeController.dispose();
     _pulseController.dispose();
     super.dispose();
+  }
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      // Navigate to login screen and remove all previous routes
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const PaaraLoginPage()),
+            (Route<dynamic> route) => false,
+      );
+    }
   }
 
   @override
@@ -258,21 +272,31 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'HI, ${widget.username.toUpperCase()}',
-                                  style: GoogleFonts.medievalSharp(
-                                    color: Colors.white,
-                                    fontSize: 24,
-
-                                    letterSpacing: 2,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.red.withOpacity(0.5),
-                                        blurRadius: 10,
-                                        offset: Offset(0, 0),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'HI, ${_currentUser?.displayName}',
+                                      style: GoogleFonts.medievalSharp(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                    
+                                        letterSpacing: 2,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.red.withOpacity(0.5),
+                                            blurRadius: 10,
+                                            offset: Offset(0, 0),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Spacer(),
+                                    IconButton(
+                                      icon: const Icon(Icons.logout, color: Colors.white),
+                                      onPressed: _logout,
+                                      tooltip: 'Logout',
+                                    ),
+                                  ],
                                 ),
 
                               ],

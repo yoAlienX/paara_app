@@ -1,9 +1,9 @@
 import 'dart:typed_data';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
+import 'homeScreen.dart'; // Import the home screen for navigation
 
 class CurseEggPage extends StatefulWidget {
   final String enemyName;
@@ -364,9 +364,15 @@ class _CurseEggPageState extends State<CurseEggPage>
 
                   SizedBox(height: 30),
 
-                  // Elegant return button
+                  // Elegant return button - UPDATED
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      // Navigate back to the home screen, clearing previous routes
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const ParaHomeScreen()),
+                            (Route<dynamic> route) => false,
+                      );
+                    },
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 30,
@@ -380,7 +386,7 @@ class _CurseEggPageState extends State<CurseEggPage>
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: Text(
-                        'Cast Another',
+                        'Return to Sanctum', // Updated Text
                         style: GoogleFonts.cinzel(
                           fontSize: 14,
                           color: _getIntensityColor(),
