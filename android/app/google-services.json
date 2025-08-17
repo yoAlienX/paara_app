@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1020950431866",
+    "project_id": "paara-app",
+    "storage_bucket": "paara-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1020950431866:android:6d921229f536f52b3b93c3",
+        "android_client_info": {
+          "package_name": "com.paara.paara_app_duk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmRc6ubj2MBKKyiKdSWd6qLkuG8uDqiqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
