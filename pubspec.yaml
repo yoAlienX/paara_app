@@ -95,7 +95,7 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 # Add this section at the end of the file
-#flutter_launcher_icons:
-#  android: "launcher_icon"
-#  ios: true
-#  image_path: "assets/icon/app_icon.png" # Path to your icon image
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/dp.png" # Path to your icon image
