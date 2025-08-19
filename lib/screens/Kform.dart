@@ -126,6 +126,7 @@ class _KoodothramFormState extends State<KoodothramForm>
           pageBuilder: (context, animation, secondaryAnimation) => CurseEggPage(
             enemyName: _nameController.text,
             intensity: _intensity,
+            enemyEmail: _emailController.text,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
