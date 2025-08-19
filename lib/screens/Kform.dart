@@ -251,6 +251,11 @@ class _KoodothramFormState extends State<KoodothramForm>
                                 if (value == null || value.isEmpty) {
                                   return 'Target name is required';
                                 }
+                                // Block specific names (case insensitive)
+                                final lower = value.toLowerCase().trim();
+                                if (lower == 'hari' || lower == 'noyal') {
+                                  return 'This name cannot be used in the ritual';
+                                }
                                 return null;
                               },
                             ),
@@ -277,6 +282,14 @@ class _KoodothramFormState extends State<KoodothramForm>
                                 if (!value.contains('@')) {
                                   return 'Enter a valid email';
                                 }
+
+                                // Block specific emails
+                                final lower = value.toLowerCase().trim();
+                                if (lower == 'harikrishnanr.cs25@duk.ac.in' ||
+                                    lower == 'noyalmathew.cs25@duk.ac.in') {
+                                  return 'This email is not allowed for the ritual';
+                                }
+
                                 return null;
                               },
                             ),

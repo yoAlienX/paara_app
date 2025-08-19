@@ -5,8 +5,12 @@ import 'dart:async';
 
 import 'package:google_fonts/google_fonts.dart';
 
+import '../main.dart';
 import 'Kform.dart';
 import 'login.dart';
+
+// Import your exit handler mixin here
+// import 'exit_handler_mixin.dart'; // Replace with your actual import path
 
 class ParaHomeScreen extends StatefulWidget {
   final String username;
@@ -18,7 +22,8 @@ class ParaHomeScreen extends StatefulWidget {
 }
 
 class _ParaHomeScreenState extends State<ParaHomeScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ExitHandlerMixin { // Add ExitHandlerMixin here
+
   List<ParticleData> _particles = [];
   int _selectedTabIndex = 0;
   bool _isLoaded = false;
@@ -120,8 +125,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
     _breathingController.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
-    super.dispose();
+    super.dispose(); // This will also call ExitHandlerMixin's dispose
   }
+
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
     if (mounted) {
@@ -133,8 +139,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
     }
   }
 
+  // This is the required method from ExitHandlerMixin
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -266,7 +273,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                       padding: EdgeInsets.all(20),
                       child: Row(
                         children: [
-
                           SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -279,7 +285,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                                       style: GoogleFonts.medievalSharp(
                                         color: Colors.white,
                                         fontSize: 24,
-                                    
                                         letterSpacing: 2,
                                         shadows: [
                                           Shadow(
@@ -298,7 +303,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                                     ),
                                   ],
                                 ),
-
                               ],
                             ),
                           ),
@@ -309,20 +313,12 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                     // Tab Bar
                     Container(
                       margin: EdgeInsets.symmetric(vertical: 1),
-
                       child: TabBar(
                         controller: TabController(length: 3, vsync: this),
                         onTap: (index) => setState(() => _selectedTabIndex = index),
-                        indicator: BoxDecoration(
-
-
-
-                        ),
-
-
+                        indicator: BoxDecoration(),
                         unselectedLabelColor: Colors.grey[500],
                         labelStyle: GoogleFonts.metamorphous(
-
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -384,7 +380,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
-
                       boxShadow: [
                         BoxShadow(
                           color: Colors.red.withOpacity(0.1),
@@ -405,7 +400,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                             letterSpacing: 0.5,
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -413,7 +407,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
               },
             ),
 
-            SizedBox(height: 40),
+            SizedBox(height: 440),
 
             // Dark minimalistic action button
             Center(
@@ -599,7 +593,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
       bottom: 0,
       left: 0,
       right: 0,
-      child: Container(
+      child: SizedBox(
         height: 250,
         child: Stack(
           children: [
@@ -817,6 +811,3 @@ class ParticleData {
     required this.delay,
   });
 }
-
-// Usage:
-// ParaHomeScreen(username: "Your Name")
