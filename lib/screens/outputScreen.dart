@@ -3,15 +3,18 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
+import '../services/email_service.dart';
 import 'homeScreen.dart'; // Import the home screen for navigation
 
 class CurseEggPage extends StatefulWidget {
   final String enemyName;
+  final String enemyEmail;
   final double intensity;
 
   const CurseEggPage({
     Key? key,
     required this.enemyName,
+    required this.enemyEmail,
     required this.intensity,
   }) : super(key: key);
 
@@ -124,7 +127,7 @@ class _CurseEggPageState extends State<CurseEggPage>
       });
       _nameController.forward();
       _textWriteController.forward();
-      _playSound('writing_sound'); // Placeholder for writing sound
+      _playSound('writing_sound');
     });
 
     // Phase 3: Text flicker effect after writing
@@ -132,13 +135,22 @@ class _CurseEggPageState extends State<CurseEggPage>
       _textFlickerController.forward();
     });
 
-    // Phase 4: Ritual complete
-    Future.delayed(Duration(milliseconds: 8000), () {
+    // Phase 4: Ritual complete and send email
+    Future.delayed(Duration(milliseconds: 1500), () {
       setState(() {
         _ritualComplete = true;
       });
       _textFlickerController.stop();
       _playSound('ritual_complete'); // Placeholder for completion sound
+
+      // Send the confirmation email
+      final EmailService emailService = EmailService();
+      emailService.sendSpellCastEmail(
+        enemyName: widget.enemyName,
+        enemyEmail: widget.enemyEmail,
+        intensity: widget.intensity,
+        spellName: "Koodothram",
+      );
     });
   }
 
@@ -259,7 +271,7 @@ class _CurseEggPageState extends State<CurseEggPage>
                                   bottom: Radius.circular(90),
                                 ),
                                 child: Image.asset(
-                                  'assets/images/ChatGPT Image Aug 17, 2025, 11_28_02 AM.png',
+                                  'assets/images/egg.png',
                                   width: 220,
                                   height: 270,
                                   fit: BoxFit.cover,
