@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -25,6 +27,7 @@ class _KoodothramFormState extends State<KoodothramForm>
 
   List<ParticleData> _particles = [];
   bool _isFormVisible = false;
+  bool _isCasting = false;
 
   @override
   void initState() {
@@ -32,6 +35,73 @@ class _KoodothramFormState extends State<KoodothramForm>
     _initializeAnimations();
     _initializeParticles();
     _startAnimations();
+  }
+
+  // --- NEW FUNCTION TO SAVE THE SPELL ---
+  Future<void> _castSpell() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isCasting = true;
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        // Handle user not logged in case
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be logged in to cast a spell.')),
+        );
+        setState(() {
+          _isCasting = false;
+        });
+        return;
+      }
+
+      try {
+        // Create the spell data map
+        final spellData = {
+          'enemyName': _nameController.text.trim(),
+          'enemyEmail': _emailController.text.trim(),
+          'nakshathram': _nakshathramController.text.trim(),
+          'dob': _selectedDate != null ? Timestamp.fromDate(_selectedDate!) : null,
+          'intensity': _intensity,
+          'spellName': 'Koodothram',
+          'castedAt': FieldValue.serverTimestamp(),
+          'casterId': user.uid,
+        };
+
+        // Save to the user's history subcollection
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('historyOfSpells')
+            .add(spellData);
+
+        // Navigate to the output screen on success
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CurseEggPage(
+                enemyName: _nameController.text.trim(),
+                enemyEmail: _emailController.text.trim(),
+                intensity: _intensity,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        print("Error casting spell: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to cast the spell: $e')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isCasting = false;
+          });
+        }
+      }
+    }
   }
 
   void _initializeAnimations() {
@@ -486,6 +556,52 @@ class _KoodothramFormState extends State<KoodothramForm>
     );
   }
 
+  // Widget _buildSubmitButton() {
+  //   return AnimatedBuilder(
+  //     animation: _glowController,
+  //     builder: (context, child) {
+  //       return Container(
+  //         width: double.infinity,
+  //         height: 60,
+  //         child: ElevatedButton(
+  //           onPressed: _submitForm,
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.grey,
+  //             foregroundColor: Colors.white,
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(12),
+  //             ),
+  //             elevation: 8,
+  //           ),
+  //           child: Container(
+  //             decoration: BoxDecoration(
+  //               borderRadius: BorderRadius.circular(12),
+  //               boxShadow: [
+  //                 BoxShadow(
+  //                   color: Colors.red.withOpacity(_glowController.value * 0.5),
+  //                   blurRadius: 20,
+  //                   spreadRadius: 2,
+  //                 ),
+  //               ],
+  //             ),
+  //             child: Center(
+  //               child: Text(
+  //                 'CAST CURSE',
+  //                 style: GoogleFonts.medievalSharp(
+  //                   fontSize: 18,
+  //                   fontWeight: FontWeight.bold,
+  //                   letterSpacing: 0.1 * 18,
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  // --- UPDATED SUBMIT BUTTON WIDGET ---
   Widget _buildSubmitButton() {
     return AnimatedBuilder(
       animation: _glowController,
@@ -494,9 +610,9 @@ class _KoodothramFormState extends State<KoodothramForm>
           width: double.infinity,
           height: 60,
           child: ElevatedButton(
-            onPressed: _submitForm,
+            onPressed: _isCasting ? null : _castSpell, // Connects to your logic
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey,
+              backgroundColor: Colors.red[900], // Themed color
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -508,19 +624,28 @@ class _KoodothramFormState extends State<KoodothramForm>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.red.withOpacity(_glowController.value * 0.5),
+                    color: Colors.red.withOpacity(_glowController.value * 0.7),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
                 ],
               ),
               child: Center(
-                child: Text(
+                child: _isCasting
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+                    : Text(
                   'CAST CURSE',
                   style: GoogleFonts.medievalSharp(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 0.1 * 18,
+                    letterSpacing: 2, // Adjusted for better readability
                   ),
                 ),
               ),

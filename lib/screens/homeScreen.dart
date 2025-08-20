@@ -6,12 +6,14 @@ import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'Kform.dart';
+import 'history.dart';
 import 'login.dart';
 
 class ParaHomeScreen extends StatefulWidget {
   final String username;
 
-  const ParaHomeScreen({Key? key, this.username = "Practitioner"}) : super(key: key);
+  const ParaHomeScreen({Key? key, this.username = "Practitioner"})
+    : super(key: key);
 
   @override
   _ParaHomeScreenState createState() => _ParaHomeScreenState();
@@ -30,6 +32,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
   late AnimationController _breathingController;
   late AnimationController _fadeController;
   late AnimationController _pulseController;
+  late TabController _tabController;
 
   late Animation<double> _fadeAnimation;
   late Animation<double> _breathingAnimation;
@@ -39,6 +42,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
   void initState() {
     super.initState();
     _currentUser = FirebaseAuth.instance.currentUser;
+    _tabController = TabController(length: 3, vsync: this);
     _initializeAnimations();
     _initializeParticles();
     _startAnimations();
@@ -120,15 +124,17 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
     _breathingController.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
+
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
     if (mounted) {
       // Navigate to login screen and remove all previous routes
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const PaaraLoginPage()),
-            (Route<dynamic> route) => false,
+        (Route<dynamic> route) => false,
       );
     }
   }
@@ -149,14 +155,12 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
               _buildCustomAppBar(),
 
               // Tab content
-              Expanded(
-                child: _buildTabContent(),
-              ),
+              Expanded(child: _buildTabContent()),
             ],
           ),
 
-          // Bottom image section - positioned at the very bottom
-          _buildBottomImageSection(),
+          // Bottom image section - only show on HOME tab
+          if (_selectedTabIndex == 0) _buildBottomImageSection(),
         ],
       ),
     );
@@ -169,13 +173,15 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
         return AnimatedBuilder(
           animation: _particleController,
           builder: (context, child) {
-            final animatedValue = (_particleController.value + particle.delay) % 1.0;
+            final animatedValue =
+                (_particleController.value + particle.delay) % 1.0;
             final floatOffset = math.sin(animatedValue * 2 * math.pi) * 30;
             final rotationOffset = animatedValue * 2 * math.pi;
 
             return Positioned(
               left: MediaQuery.of(context).size.width * particle.x,
-              top: MediaQuery.of(context).size.height * particle.y + floatOffset,
+              top:
+                  MediaQuery.of(context).size.height * particle.y + floatOffset,
               child: Transform.rotate(
                 angle: rotationOffset,
                 child: Container(
@@ -212,7 +218,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.grey[900]!.withOpacity(0.2 * _smokeController.value),
+                    color: Colors.grey[900]!.withOpacity(
+                      0.2 * _smokeController.value,
+                    ),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -224,7 +232,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15 * _smokeController.value),
+                    color: Colors.white.withOpacity(
+                      0.15 * _smokeController.value,
+                    ),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -266,7 +276,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                       padding: EdgeInsets.all(20),
                       child: Row(
                         children: [
-
                           SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -279,7 +288,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                                       style: GoogleFonts.medievalSharp(
                                         color: Colors.white,
                                         fontSize: 24,
-                                    
+
                                         letterSpacing: 2,
                                         shadows: [
                                           Shadow(
@@ -292,13 +301,15 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                                     ),
                                     Spacer(),
                                     IconButton(
-                                      icon: const Icon(Icons.logout, color: Colors.white),
+                                      icon: const Icon(
+                                        Icons.logout,
+                                        color: Colors.white,
+                                      ),
                                       onPressed: _logout,
                                       tooltip: 'Logout',
                                     ),
                                   ],
                                 ),
-
                               ],
                             ),
                           ),
@@ -311,18 +322,16 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                       margin: EdgeInsets.symmetric(vertical: 1),
 
                       child: TabBar(
-                        controller: TabController(length: 3, vsync: this),
-                        onTap: (index) => setState(() => _selectedTabIndex = index),
+                        controller: _tabController,
+                        onTap: (index) =>
+                            setState(() => _selectedTabIndex = index),
                         indicator: BoxDecoration(
-
-
-
+                          color: Colors.red[900]?.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-
-
+                        labelColor: Colors.white,
                         unselectedLabelColor: Colors.grey[500],
                         labelStyle: GoogleFonts.metamorphous(
-
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -354,17 +363,36 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
           child: AnimatedOpacity(
             opacity: _isLoaded ? 1.0 : 0.0,
             duration: Duration(milliseconds: 2000),
-            child: _selectedTabIndex == 0 ? _buildHomeContent() : _buildOtherTabContent(),
+            child: _getTabContent(),
           ),
         );
       },
     );
   }
 
+  // NEW: Method to return appropriate content based on selected tab
+  Widget _getTabContent() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return _buildHomeContent();
+      case 1:
+        return _buildOtherTabContent();
+      case 2:
+        return const HistoryPage(); // Show the history page
+      default:
+        return _buildHomeContent();
+    }
+  }
+
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 280), // Add bottom padding to avoid overlap with image
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          280,
+        ), // Add bottom padding to avoid overlap with image
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -405,7 +433,6 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                             letterSpacing: 0.5,
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -421,8 +448,12 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                 animation: _pulseController,
                 builder: (context, child) {
                   // Subtle dark pulsing effect - very minimal
-                  final darkPulse = 0.02 + 0.01 * math.sin(_pulseController.value * 2 * math.pi);
-                  final shadowIntensity = 0.1 + 0.05 * math.sin(_pulseController.value * 2 * math.pi);
+                  final darkPulse =
+                      0.02 +
+                      0.01 * math.sin(_pulseController.value * 2 * math.pi);
+                  final shadowIntensity =
+                      0.1 +
+                      0.05 * math.sin(_pulseController.value * 2 * math.pi);
 
                   return GestureDetector(
                     onTap: () {
@@ -450,7 +481,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                           ),
                           // Inner shadow effect for depth
                           BoxShadow(
-                            color: Colors.grey[700]!.withOpacity(0.1 * shadowIntensity),
+                            color: Colors.grey[700]!.withOpacity(
+                              0.1 * shadowIntensity,
+                            ),
                             blurRadius: 4,
                             spreadRadius: -1,
                             offset: Offset(0, -1),
@@ -482,7 +515,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                               width: 2,
                               height: 2,
                               decoration: BoxDecoration(
-                                color: Colors.grey[600]!.withOpacity(0.4 + darkPulse * 10),
+                                color: Colors.grey[600]!.withOpacity(
+                                  0.4 + darkPulse * 10,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -494,7 +529,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                               width: 2,
                               height: 2,
                               decoration: BoxDecoration(
-                                color: Colors.grey[600]!.withOpacity(0.4 + darkPulse * 10),
+                                color: Colors.grey[600]!.withOpacity(
+                                  0.4 + darkPulse * 10,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -506,7 +543,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                               width: 2,
                               height: 2,
                               decoration: BoxDecoration(
-                                color: Colors.grey[600]!.withOpacity(0.4 + darkPulse * 10),
+                                color: Colors.grey[600]!.withOpacity(
+                                  0.4 + darkPulse * 10,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -518,7 +557,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                               width: 2,
                               height: 2,
                               decoration: BoxDecoration(
-                                color: Colors.grey[600]!.withOpacity(0.4 + darkPulse * 10),
+                                color: Colors.grey[600]!.withOpacity(
+                                  0.4 + darkPulse * 10,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -549,7 +590,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                                 Container(
                                   width: 40,
                                   height: 1,
-                                  color: Colors.grey[700]!.withOpacity(0.5 + darkPulse * 5),
+                                  color: Colors.grey[700]!.withOpacity(
+                                    0.5 + darkPulse * 5,
+                                  ),
                                 ),
                               ],
                             ),
@@ -616,7 +659,9 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.1 * _glowController.value),
+                          color: Colors.white.withOpacity(
+                            0.1 * _glowController.value,
+                          ),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -714,11 +759,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.construction,
-            color: Colors.grey[600],
-            size: 64,
-          ),
+          Icon(Icons.construction, color: Colors.grey[600], size: 64),
           SizedBox(height: 20),
           Text(
             'Coming Soon...',
@@ -771,10 +812,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Retreat',
-                style: TextStyle(color: Colors.grey[400]),
-              ),
+              child: Text('Retreat', style: TextStyle(color: Colors.grey[400])),
             ),
             TextButton(
               onPressed: () {
