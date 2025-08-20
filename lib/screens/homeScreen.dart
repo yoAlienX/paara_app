@@ -330,7 +330,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
                         onTap: (index) =>
                             setState(() => _selectedTabIndex = index),
                         indicator: BoxDecoration(
-                          color: Colors.red[900]?.withOpacity(0.3),
+
                           borderRadius: BorderRadius.circular(8),
                         ),
                         labelColor: Colors.white,
@@ -443,7 +443,7 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
               },
             ),
 
-            SizedBox(height: 440),
+            SizedBox(height: 200),
 
             // Dark minimalistic action button
             Center(
@@ -758,32 +758,120 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
   }
 
   Widget _buildOtherTabContent() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.construction, color: Colors.grey[600], size: 64),
-          SizedBox(height: 20),
-          Text(
-            'Coming Soon...',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 18,
-              fontFamily: 'Mystery Quest',
+    return Stack(
+      children: [
+        // Image touching the bottom
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: SizedBox(
+            height: 400,
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedBuilder(
+                    animation: _glowController,
+                    builder: (context, child) {
+                      return  Container(
+                        width: double.infinity,
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.3, // 40% of screen height
+                          minHeight: 180,
+                        ),
+                        child: Stack(
+                          children: [
+                            // Full image display
+                            Container(
+                              decoration: BoxDecoration(
+
+                              ),
+                              child: Image.asset(
+                                'assets/images/Screenshot 2025-08-20 151449.png',
+                                fit: BoxFit.contain, // This will show the full image without cropping
+                                width: double.infinity,
+                                color: Colors.black.withOpacity(0.2), // Lighter overlay
+                                colorBlendMode: BlendMode.darken,
+                              ),
+                            ),
+
+                            // Gradient overlay (optional)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withOpacity(0.7),
+                                      Colors.black.withOpacity(0.3),
+                                      Colors.transparent,
+                                    ],
+                                    stops: [0.0, 0.3, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Gradient overlay
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black,
+                        Colors.black.withOpacity(0.8),
+                        Colors.black.withOpacity(0.4),
+                        Colors.transparent,
+                      ],
+                      stops: [0.0, 0.3, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            'Dark features in development',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 12,
-              fontFamily: 'Metamorphous',
-            ),
+        ),
+
+        // Centered content stays on top
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.construction, color: Colors.grey[600], size: 64),
+              SizedBox(height: 20),
+              Text(
+                'Coming Soon...',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 18,
+                  fontFamily: 'Mystery Quest',
+                ),
+              ),
+              Text(
+                'Dark features in development',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                  fontFamily: 'Metamorphous',
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
 
   void _showMysticalDialog() {
     showDialog(
@@ -798,24 +886,23 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
           ),
           title: Text(
             'Enter the Void?',
-            style: TextStyle(
+            style: GoogleFonts.metamorphous(
               color: Colors.white,
-              fontFamily: 'UnifrakturCook',
+
               fontSize: 20,
             ),
           ),
           content: Text(
             'Are you prepared to channel dark energies and create a digital koodothram? This action cannot be undone.',
-            style: TextStyle(
-              color: Colors.grey[300],
-              fontFamily: 'Metamorphous',
+            style: GoogleFonts.metamorphous(
+              color: Colors.white,
               fontSize: 14,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Retreat', style: TextStyle(color: Colors.grey[400])),
+              child: Text('Retreat', style: GoogleFonts.metamorphous(color: Colors.grey[400])),
             ),
             TextButton(
               onPressed: () {
@@ -826,9 +913,8 @@ class _ParaHomeScreenState extends State<ParaHomeScreen>
               },
               child: Text(
                 'Proceed',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'UnifrakturCook',
+                style: GoogleFonts.metamorphous(
+                  color: Colors.red[400],
                 ),
               ),
             ),

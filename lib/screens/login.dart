@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart'; // Add this import
 import '../services/firebase_auth_service.dart';
 import 'homeScreen.dart';
 import 'registration.dart';
@@ -29,6 +30,9 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
 
   final GlobalKey<FormState> formKey = GlobalKey();
   final AuthService _authService = AuthService();
+
+  // Audio player instance
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   // Controllers for form fields
   final TextEditingController _emailController = TextEditingController();
@@ -123,6 +127,27 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
     });
   }
 
+  // Play welcome sound
+  Future<void> _playWelcomeSound() async {
+    try {
+      // Replace with your actual sound file path
+      await _audioPlayer.play(AssetSource('sounds/welcome.mp3'));
+      print('Welcome sound played successfully');
+    } catch (e) {
+      print('Error playing welcome sound: $e');
+      // You can add a fallback or handle the error gracefully
+    }
+  }
+
+  // Stop any playing sounds
+  Future<void> _stopSound() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      print('Error stopping sound: $e');
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -132,6 +157,7 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
     _glowController.dispose();
     _buttonHoverController.dispose();
     _borderController.dispose();
+    _audioPlayer.dispose(); // Dispose audio player
     super.dispose();
   }
 
@@ -176,7 +202,8 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
 
                     // Create account button
                     _buildCreateAccountButton(),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
+                    _buildBottomImageSection()
                   ],
                 ),
               ),
@@ -186,6 +213,292 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
       ),
     );
   }
+
+  // Enhanced welcome dialog with sound and better animations
+  void _navigateToHome(Map<String, dynamic> userData) {
+    // Play welcome sound immediately
+    _playWelcomeSound();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withOpacity(0.9),
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Prevent back button during welcome
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+          child: AlertDialog(
+            backgroundColor: Colors.grey[900]?.withOpacity(0.95),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            elevation: 20,
+            content: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated icon with pulsing effect
+                  TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 1200),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: 0.5 + (value * 0.5),
+                        child: AnimatedBuilder(
+                          animation: _glowController,
+                          builder: (context, child) {
+                            return Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(
+                                    0.3 + (_glowController.value * 0.3),
+                                  ),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(
+                                      0.2 * _glowController.value,
+                                    ),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Welcome title with typewriter effect
+                  TweenAnimationBuilder<int>(
+                    duration: Duration(milliseconds: 1500),
+                    tween: IntTween(begin: 0, end: 'Portal Invoked!'.length),
+                    builder: (context, value, child) {
+                      return Text(
+                        'Portal Invoked!'.substring(0, value),
+                        style: GoogleFonts.medievalSharp(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          shadows: [
+                            Shadow(
+                              offset: Offset(0, 0),
+                              blurRadius: 10,
+                              color: Colors.white.withOpacity(0.3),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // User name with fade in effect
+                  TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 2000),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Text(
+                          'Welcome, ${userData['name']}',
+                          style: GoogleFonts.metamorphous(
+                            fontSize: 16,
+                            color: Colors.grey[300],
+                            letterSpacing: 0.8,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 12),
+
+                  // Description with staggered fade in
+                  TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 2500),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: Text(
+                          'The darkness welcomes you.\nEnter the realm of shadows...',
+                          style: GoogleFonts.metamorphous(
+                            fontSize: 12,
+                            color: Colors.grey[400],
+                            letterSpacing: 0.5,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 32),
+
+                  // Sound indicator with visual feedback
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _glowController,
+                        builder: (context, child) {
+                          return Icon(
+                            Icons.volume_up_outlined,
+                            color: Colors.white.withOpacity(
+                              0.5 + (_glowController.value * 0.3),
+                            ),
+                            size: 16,
+                          );
+                        },
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Playing Welcome Ritual',
+                        style: GoogleFonts.metamorphous(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Enter button with glow effect
+                  TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 3000),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: value,
+                        child: AnimatedBuilder(
+                          animation: _glowController,
+                          builder: (context, child) {
+                            return Container(
+                              width: double.infinity,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(
+                                    0.3 + (_glowController.value * 0.2),
+                                  ),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(
+                                      0.1 * _glowController.value,
+                                    ),
+                                    blurRadius: 15,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _stopSound(); // Stop sound before navigation
+                                  Navigator.pop(context);
+                                  Navigator.pushReplacement(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation, secondaryAnimation) =>
+                                          ParaHomeScreen(),
+                                      transitionDuration: Duration(milliseconds: 800),
+                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: SlideTransition(
+                                            position: Tween<Offset>(
+                                              begin: Offset(0.0, 0.1),
+                                              end: Offset.zero,
+                                            ).animate(animation),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'ENTER THE REALM',
+                                  style: GoogleFonts.medievalSharp(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(1, 1),
+                                        blurRadius: 2,
+                                        color: Colors.black.withOpacity(0.5),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Auto-dismiss after 8 seconds if user doesn't interact
+    Timer(Duration(seconds: 8), () {
+      if (Navigator.of(context).canPop()) {
+        _stopSound();
+        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ParaHomeScreen()),
+        );
+      }
+    });
+  }
+
+  // Rest of your existing methods remain the same...
+  // (Include all the other methods from your original code here)
 
   List<Widget> _buildParticles() {
     return _particles.map((particle) {
@@ -297,6 +610,86 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
     );
   }
 
+  // Add your remaining methods here (_buildMysticalForm, _buildMysticalTextField, etc.)
+  // I'm including the essential login handling method:
+
+  Future<void> _handleLogin() async {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      AuthResult result = await _authService.loginUser(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        if (result.success) {
+          _showSnackbar(result.message, Colors.green);
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          if (mounted && result.userData != null) {
+            _navigateToHome(result.userData!);
+          }
+        } else {
+          _showSnackbar(result.message, Colors.red);
+        }
+      }
+    } catch (e) {
+      print('Login exception: $e');
+      if (mounted) {
+        _showSnackbar('The dark forces rejected your request. Try again.', Colors.red);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackbar(String message, Color backgroundColor) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                backgroundColor == Colors.green ? Icons.check_circle : Icons.error,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: GoogleFonts.metamorphous(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: backgroundColor.withOpacity(0.9),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
   Widget _buildMysticalForm() {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -355,20 +748,20 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
           const SizedBox(height: 16),
 
           // Forgot password
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: isLoading ? null : _showForgotPasswordDialog,
-              child: Text(
-                'Forgotten Incantation?',
-                style: GoogleFonts.metamorphous(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
+          // Align(
+          //   alignment: Alignment.centerRight,
+          //   child: TextButton(
+          //     onPressed: isLoading ? null : _showForgotPasswordDialog,
+          //     child: Text(
+          //       'Forgotten Incantation?',
+          //       style: GoogleFonts.metamorphous(
+          //         color: Colors.grey[500],
+          //         fontSize: 12,
+          //         fontWeight: FontWeight.w400,
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );
@@ -653,147 +1046,193 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
     );
   }
 
-  Future<void> _handleLogin() async {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
+  // Future<void> _handleLogin() async {
+  //   if (!formKey.currentState!.validate()) {
+  //     return;
+  //   }
+  //
+  //   setState(() {
+  //     isLoading = true;
+  //   });
+  //
+  //   try {
+  //     AuthResult result = await _authService.loginUser(
+  //       email: _emailController.text.trim(),
+  //       password: _passwordController.text,
+  //     );
+  //
+  //     if (mounted) {
+  //       if (result.success) {
+  //         _showSnackbar(result.message, Colors.green);
+  //         await Future.delayed(const Duration(milliseconds: 500));
+  //
+  //         if (mounted && result.userData != null) {
+  //           _navigateToHome(result.userData!);
+  //         }
+  //       } else {
+  //         _showSnackbar(result.message, Colors.red);
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print('Login exception: $e');
+  //     if (mounted) {
+  //       _showSnackbar('The dark forces rejected your request. Try again.', Colors.red);
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
 
-    setState(() {
-      isLoading = true;
-    });
+  // void _showSnackbar(String message, Color backgroundColor) {
+  //   if (mounted) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Row(
+  //           children: [
+  //             Icon(
+  //               backgroundColor == Colors.green ? Icons.check_circle : Icons.error,
+  //               color: Colors.white,
+  //               size: 20,
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: Text(
+  //                 message,
+  //                 style: GoogleFonts.metamorphous(
+  //                   fontWeight: FontWeight.w400,
+  //                   fontSize: 13,
+  //                   color: Colors.white,
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         backgroundColor: backgroundColor.withOpacity(0.9),
+  //         duration: const Duration(seconds: 3),
+  //         behavior: SnackBarBehavior.floating,
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(12),
+  //         ),
+  //         margin: const EdgeInsets.all(16),
+  //       ),
+  //     );
+  //   }
+  // }
 
-    try {
-      AuthResult result = await _authService.loginUser(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (mounted) {
-        if (result.success) {
-          _showSnackbar(result.message, Colors.green);
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          if (mounted && result.userData != null) {
-            _navigateToHome(result.userData!);
-          }
-        } else {
-          _showSnackbar(result.message, Colors.red);
-        }
-      }
-    } catch (e) {
-      print('Login exception: $e');
-      if (mounted) {
-        _showSnackbar('The dark forces rejected your request. Try again.', Colors.red);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _showSnackbar(String message, Color backgroundColor) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                backgroundColor == Colors.green ? Icons.check_circle : Icons.error,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: GoogleFonts.metamorphous(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: backgroundColor.withOpacity(0.9),
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
+  // void _navigateToHome(Map<String, dynamic> userData) {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     barrierColor: Colors.black.withOpacity(0.8),
+  //     builder: (context) => AlertDialog(
+  //       backgroundColor: Colors.grey[900],
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(16),
+  //         side: BorderSide(color: Colors.grey[700]!, width: 1),
+  //       ),
+  //       title: Row(
+  //         children: [
+  //           Icon(Icons.star, color: Colors.white, size: 28),
+  //           const SizedBox(width: 12),
+  //           Expanded(
+  //             child: Text(
+  //               'Welcome, ${userData['name']}',
+  //               style: GoogleFonts.medievalSharp(
+  //                 fontSize: 18,
+  //                 color: Colors.white,
+  //               ),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       content: Text(
+  //         'The portal has been successfully invoked. Enter the realm.',
+  //         style: GoogleFonts.metamorphous(
+  //           fontSize: 14,
+  //           color: Colors.grey[300],
+  //         ),
+  //       ),
+  //       actions: [
+  //         ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             Navigator.pushReplacement(
+  //               context,
+  //               MaterialPageRoute(
+  //                 builder: (context) => ParaHomeScreen(),
+  //               ),
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.grey[800],
+  //             foregroundColor: Colors.white,
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(8),
+  //             ),
+  //           ),
+  //           child: Text(
+  //             'ENTER',
+  //             style: GoogleFonts.medievalSharp(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  Widget _buildBottomImageSection() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.4, // 40% of screen height
+          minHeight: 200,
         ),
-      );
-    }
-  }
-
-  void _navigateToHome(Map<String, dynamic> userData) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.8),
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[700]!, width: 1),
-        ),
-        title: Row(
+        child: Stack(
           children: [
-            Icon(Icons.star, color: Colors.white, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Welcome, ${userData['name']}',
-                style: GoogleFonts.medievalSharp(
-                  fontSize: 18,
-                  color: Colors.white,
+            // Full image display
+            Container(
+              decoration: BoxDecoration(
+
+              ),
+              child: Image.asset(
+                'assets/images/potti.png',
+                fit: BoxFit.contain, // This will show the full image without cropping
+                width: double.infinity,
+                color: Colors.black.withOpacity(0.2), // Lighter overlay
+                colorBlendMode: BlendMode.darken,
+              ),
+            ),
+
+            // Gradient overlay (optional)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.7),
+                      Colors.black.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, 0.3, 1.0],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        content: Text(
-          'The portal has been successfully invoked. Enter the realm.',
-          style: GoogleFonts.metamorphous(
-            fontSize: 14,
-            color: Colors.grey[300],
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ParaHomeScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[800],
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'ENTER',
-              style: GoogleFonts.medievalSharp(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
-
   void _navigateToRegister() {
     Navigator.push(
       context,
@@ -806,116 +1245,116 @@ class _PaaraLoginPageState extends State<PaaraLoginPage>
     );
   }
 
-  void _showForgotPasswordDialog() {
-    final TextEditingController emailController = TextEditingController();
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.8),
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[700]!, width: 1),
-        ),
-        title: Text(
-          'Restore Forgotten Spell',
-          style: GoogleFonts.medievalSharp(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Provide your soul\'s identifier to receive restoration instructions.',
-              style: GoogleFonts.metamorphous(
-                fontSize: 13,
-                color: Colors.grey[300],
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              style: TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'your.name@duk.ac.in',
-                hintStyle: TextStyle(color: Colors.grey[500]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[700]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[700]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[800],
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.metamorphous(
-                color: Colors.grey[400],
-                fontSize: 14,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              String email = emailController.text.trim();
-              if (email.isNotEmpty) {
-                try {
-                  AuthResult result = await _authService.resetPassword(email);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    _showSnackbar(
-                      result.message,
-                      result.success ? Colors.green : Colors.red,
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    _showSnackbar(
-                      'The ritual failed. Please try again.',
-                      Colors.red,
-                    );
-                  }
-                }
-              } else {
-                _showSnackbar('Your soul\'s identifier is required', Colors.red);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[800],
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Send Restoration',
-              style: GoogleFonts.metamorphous(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _showForgotPasswordDialog() {
+  //   final TextEditingController emailController = TextEditingController();
+  //
+  //   showDialog(
+  //     context: context,
+  //     barrierColor: Colors.black.withOpacity(0.8),
+  //     builder: (context) => AlertDialog(
+  //       backgroundColor: Colors.grey[900],
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(16),
+  //         side: BorderSide(color: Colors.grey[700]!, width: 1),
+  //       ),
+  //       title: Text(
+  //         'Restore Forgotten Spell',
+  //         style: GoogleFonts.medievalSharp(
+  //           fontSize: 18,
+  //           fontWeight: FontWeight.w600,
+  //           color: Colors.white,
+  //         ),
+  //       ),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Text(
+  //             'Provide your soul\'s identifier to receive restoration instructions.',
+  //             style: GoogleFonts.metamorphous(
+  //               fontSize: 13,
+  //               color: Colors.grey[300],
+  //             ),
+  //           ),
+  //           const SizedBox(height: 20),
+  //           TextField(
+  //             controller: emailController,
+  //             keyboardType: TextInputType.emailAddress,
+  //             style: TextStyle(color: Colors.white),
+  //             decoration: InputDecoration(
+  //               hintText: 'your.name@duk.ac.in',
+  //               hintStyle: TextStyle(color: Colors.grey[500]),
+  //               border: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(12),
+  //                 borderSide: BorderSide(color: Colors.grey[700]!),
+  //               ),
+  //               enabledBorder: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(12),
+  //                 borderSide: BorderSide(color: Colors.grey[700]!),
+  //               ),
+  //               focusedBorder: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(12),
+  //                 borderSide: BorderSide(color: Colors.white, width: 2),
+  //               ),
+  //               filled: true,
+  //               fillColor: Colors.grey[800],
+  //               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: Text(
+  //             'Cancel',
+  //             style: GoogleFonts.metamorphous(
+  //               color: Colors.grey[400],
+  //               fontSize: 14,
+  //             ),
+  //           ),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () async {
+  //             String email = emailController.text.trim();
+  //             if (email.isNotEmpty) {
+  //               try {
+  //                 AuthResult result = await _authService.resetPassword(email);
+  //                 if (mounted) {
+  //                   Navigator.pop(context);
+  //                   _showSnackbar(
+  //                     result.message,
+  //                     result.success ? Colors.green : Colors.red,
+  //                   );
+  //                 }
+  //               } catch (e) {
+  //                 if (mounted) {
+  //                   _showSnackbar(
+  //                     'The ritual failed. Please try again.',
+  //                     Colors.red,
+  //                   );
+  //                 }
+  //               }
+  //             } else {
+  //               _showSnackbar('Your soul\'s identifier is required', Colors.red);
+  //             }
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: Colors.grey[800],
+  //             foregroundColor: Colors.white,
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(8),
+  //             ),
+  //           ),
+  //           child: Text(
+  //             'Send Restoration',
+  //             style: GoogleFonts.metamorphous(fontSize: 12),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
 
 class ParticleData {

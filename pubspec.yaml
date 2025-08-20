@@ -72,6 +72,7 @@ flutter:
     - assets/sounds/dark_ambient.mp3
     - assets/sounds/jamba.mp3
     - assets/sounds/anuvadham.mp3
+    - assets/sounds/welcome.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

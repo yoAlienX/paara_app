@@ -183,7 +183,7 @@ class _PaaraRegisterPageState extends State<PaaraRegisterPage>
 
                     // Form fields with mystical styling
                     _buildMysticalForm(),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
 
                     // Mystical register button
                     _buildMysticalRegisterButton(),
@@ -191,7 +191,9 @@ class _PaaraRegisterPageState extends State<PaaraRegisterPage>
 
                     // Back to login link
                     _buildBackToLoginLink(),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
+
+                    _buildBottomImageSection()
                   ],
                 ),
               ),
@@ -696,7 +698,53 @@ class _PaaraRegisterPageState extends State<PaaraRegisterPage>
       ),
     );
   }
+  Widget _buildBottomImageSection() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.3, // 40% of screen height
+          minHeight: 180,
+        ),
+        child: Stack(
+          children: [
+            // Full image display
+            Container(
+              decoration: BoxDecoration(
 
+              ),
+              child: Image.asset(
+                'assets/images/Screenshot 2025-08-20 151933.png',
+                fit: BoxFit.contain, // This will show the full image without cropping
+                width: double.infinity,
+                color: Colors.black.withOpacity(0.2), // Lighter overlay
+                colorBlendMode: BlendMode.darken,
+              ),
+            ),
+
+            // Gradient overlay (optional)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.7),
+                      Colors.black.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, 0.3, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   Future<void> _handleRegistration() async {
     if (!formKey.currentState!.validate()) {
       return;

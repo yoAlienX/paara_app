@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({Key? key}) : super(key: key);
@@ -11,210 +12,405 @@ class HistoryPage extends StatefulWidget {
   _HistoryPageState createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends State<HistoryPage> {
+class _HistoryPageState extends State<HistoryPage>
+    with TickerProviderStateMixin {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+  late AnimationController _fadeController;
+  late AnimationController _particleController;
+  late AnimationController _pulseController;
+  late Animation<double> _fadeAnimation;
+  List<ParticleData> _particles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimations();
+    _initializeParticles();
+  }
+
+  void _initializeAnimations() {
+    _fadeController = AnimationController(
+      duration: Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _particleController = AnimationController(
+      duration: Duration(seconds: 8),
+      vsync: this,
+    )..repeat();
+
+    _pulseController = AnimationController(
+      duration: Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _fadeController.forward();
+  }
+
+  void _initializeParticles() {
+    final random = math.Random();
+    _particles = List.generate(8, (index) {
+      return ParticleData(
+        id: index,
+        x: random.nextDouble(),
+        y: random.nextDouble(),
+        size: random.nextDouble() * 2 + 1,
+        opacity: random.nextDouble() * 0.3 + 0.1,
+        duration: random.nextDouble() * 4 + 3,
+        delay: random.nextDouble() * 2,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _particleController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     if (_currentUser == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person_off,
-              color: Colors.grey[600],
-              size: 64,
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Please log in to see your history.',
-              style: GoogleFonts.cinzel(
-                color: Colors.grey[400],
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      );
+      return _buildNotLoggedInState();
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(_currentUser!.uid)
-          .collection('historyOfSpells')
-          .orderBy('castedAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  color: Colors.red[600],
-                  strokeWidth: 3,
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Conjuring your grimoire...',
-                  style: GoogleFonts.cinzel(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Subtle floating particles
+          ..._buildFloatingParticles(),
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Colors.red[400],
-                  size: 64,
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Failed to conjure your history.',
-                  style: GoogleFonts.cinzel(
-                    color: Colors.red[300],
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'The spirits are restless...',
-                  style: GoogleFonts.metamorphous(
-                    color: Colors.grey[500],
-                    fontSize: 12,
-                  ),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {}); // Rebuild to retry
-                  },
-                  icon: Icon(Icons.refresh, color: Colors.white),
-                  label: Text(
-                    'Retry Ritual',
-                    style: GoogleFonts.metamorphous(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[900],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+          // Main content
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(_currentUser!.uid)
+                .collection('historyOfSpells')
+                .orderBy('castedAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: _buildContent(snapshot),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.auto_stories,
-                  color: Colors.grey[600],
-                  size: 64,
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'Your Grimoire is Empty',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cinzel(
-                    color: Colors.grey[400],
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'No spells have been cast yet.\nBegin your dark journey...',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.metamorphous(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        var spellDocs = snapshot.data!.docs;
-
-        return Column(
-          children: [
-            // Header with spell count
-            Container(
-              padding: EdgeInsets.all(16),
-              child: Row(
+  Widget _buildNotLoggedInState() {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          ..._buildFloatingParticles(),
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.auto_stories,
-                    color: Colors.red[400],
-                    size: 20,
+                  AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: 1.0 + (_pulseController.value * 0.1),
+                        child: Icon(
+                          Icons.person_off_outlined,
+                          color: Colors.white.withOpacity(0.7),
+                          size: 48,
+                        ),
+                      );
+                    },
                   ),
-                  SizedBox(width: 8),
+                  SizedBox(height: 24),
                   Text(
-                    'Spell Archives',
-                    style: GoogleFonts.cinzel(
+                    'Authentication Required',
+                    style: GoogleFonts.medievalSharp(
                       color: Colors.white,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                     ),
                   ),
-                  Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.red[900]?.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red[600]!.withOpacity(0.5)),
-                    ),
-                    child: Text(
-                      '${spellDocs.length} Spells',
-                      style: GoogleFonts.metamorphous(
-                        color: Colors.red[300],
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Access the grimoire of your past',
+                    style: GoogleFonts.metamorphous(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12,
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Spells list
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12.0, 0, 12.0, 12.0),
-                itemCount: spellDocs.length,
-                itemBuilder: (context, index) {
-                  var spellData = spellDocs[index].data() as Map<String, dynamic>;
-                  return _buildSpellCard(spellData, index);
+  Widget _buildContent(AsyncSnapshot<QuerySnapshot> snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return _buildLoadingState();
+    }
+
+    if (snapshot.hasError) {
+      return _buildErrorState();
+    }
+
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    var spellDocs = snapshot.data!.docs;
+    return _buildSpellsList(spellDocs);
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (_pulseController.value * 0.2),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Summoning Archives...',
+            style: GoogleFonts.metamorphous(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Colors.white.withOpacity(0.7),
+            size: 48,
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Connection Failed',
+            style: GoogleFonts.medievalSharp(
+              color: Colors.white,
+              fontSize: 18,
+              letterSpacing: 1.2,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'The archives remain sealed',
+            style: GoogleFonts.metamorphous(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 12,
+              letterSpacing: 0.8,
+            ),
+          ),
+          SizedBox(height: 32),
+          GestureDetector(
+            onTap: () => setState(() {}),
+            child: AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3 + (_pulseController.value * 0.2)),
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Text(
+                    'Retry',
+                    style: GoogleFonts.metamorphous(
+                      color: Colors.white,
+                      fontSize: 12,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (_pulseController.value * 0.1),
+                child: Icon(
+                  Icons.auto_stories_outlined,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 48,
+                ),
+              );
+            },
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Empty Grimoire',
+            style: GoogleFonts.medievalSharp(
+              color: Colors.white,
+              fontSize: 20,
+              letterSpacing: 1.5,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'No spells have been cast\nBegin your journey into darkness',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.metamorphous(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 12,
+              letterSpacing: 0.8,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpellsList(List<QueryDocumentSnapshot> spellDocs) {
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: EdgeInsets.fromLTRB(20, 60, 20, 20),
+          child: Row(
+            children: [
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.0 + (_pulseController.value * 0.05),
+                    child: Icon(
+                      Icons.auto_stories_outlined,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 20,
+                    ),
+                  );
                 },
               ),
-            ),
-          ],
-        );
-      },
+              SizedBox(width: 12),
+              Text(
+                'GRIMOIRE',
+                style: GoogleFonts.medievalSharp(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${spellDocs.length}',
+                  style: GoogleFonts.metamorphous(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Spells list
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            itemCount: spellDocs.length,
+            itemBuilder: (context, index) {
+              return TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: Duration(milliseconds: 200 + (index * 100)),
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: Opacity(
+                      opacity: value,
+                      child: _buildSpellCard(
+                        spellDocs[index].data() as Map<String, dynamic>,
+                        index,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSpellCard(Map<String, dynamic> spellData, int index) {
-    // Safely get data with fallbacks
     final String enemyName = spellData['enemyName'] ?? 'Unknown Target';
     final double intensity = (spellData['intensity'] ?? 1.0).toDouble();
     final Timestamp? castedAtTimestamp = spellData['castedAt'];
@@ -222,269 +418,245 @@ class _HistoryPageState extends State<HistoryPage> {
     final String? nakshathram = spellData['nakshathram'];
     final String? enemyEmail = spellData['enemyEmail'];
 
-    // Format the date
     String formattedDate = 'Unknown Time';
     if (castedAtTimestamp != null) {
-      formattedDate = DateFormat('MMMM d, yyyy \'at\' h:mm a').format(castedAtTimestamp.toDate());
+      formattedDate = DateFormat('MMM d, yyyy • h:mm a').format(castedAtTimestamp.toDate());
     }
 
-    // Get intensity color
-    Color intensityColor = _getIntensityColor(intensity);
     String intensityText = _getIntensityText(intensity);
-    String intensityEmoji = _getIntensityEmoji(intensity);
 
-    return Card(
-      color: Colors.grey[900]?.withOpacity(0.8),
-      margin: const EdgeInsets.only(bottom: 16.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: intensityColor.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.grey[900]!.withOpacity(0.9),
-              Colors.black.withOpacity(0.8),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row with spell name and index
-              Row(
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      child: AnimatedBuilder(
+        animation: _pulseController,
+        builder: (context, child) {
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1 + (_pulseController.value * 0.05)),
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      spellName,
-                      style: GoogleFonts.creepster(
-                        color: Colors.white,
-                        fontSize: 20,
-                        letterSpacing: 1.5,
-                        shadows: [
-                          Shadow(
-                            color: intensityColor.withOpacity(0.5),
-                            blurRadius: 8,
-                            offset: Offset(0, 0),
+                  // Header
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          spellName,
+                          style: GoogleFonts.medievalSharp(
+                            color: Colors.red[300],
+                            fontSize: 18,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800]?.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '#${index + 1}',
-                      style: GoogleFonts.metamorphous(
-                        color: Colors.grey[400],
-                        fontSize: 10,
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '#${index + 1}',
+                          style: GoogleFonts.metamorphous(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
 
-              SizedBox(height: 12),
+                  SizedBox(height: 16),
 
-              // Target info
-              Row(
-                children: [
-                  Icon(
-                    Icons.person,
-                    color: Colors.grey[400],
-                    size: 16,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Target: ',
-                    style: GoogleFonts.cinzel(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      enemyName,
-                      style: GoogleFonts.cinzel(
-                        color: Colors.grey[300],
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                  // Target
+                  _buildInfoRow(Icons.person_outline, 'Target', enemyName),
+
+                  // Email if available
+                  if (enemyEmail != null && enemyEmail.isNotEmpty) ...[
+                    SizedBox(height: 14),
+                    _buildInfoRow(Icons.email_outlined, null, enemyEmail),
+                  ],
+
+                  // Nakshathram if available
+                  if (nakshathram != null && nakshathram.isNotEmpty) ...[
+                    SizedBox(height: 14),
+                    _buildInfoRow(Icons.star_outline, 'Star', nakshathram),
+                  ],
+
+                  SizedBox(height: 12),
+
+                  // Intensity
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.whatshot_outlined,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 14,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Show email if available
-              if (enemyEmail != null && enemyEmail.isNotEmpty) ...[
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.email,
-                      color: Colors.grey[400],
-                      size: 16,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        enemyEmail,
+                      SizedBox(width: 8),
+                      Text(
+                        'Intensity ',
                         style: GoogleFonts.metamorphous(
-                          color: Colors.grey[500],
-                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        '${intensity.toInt()}/10',
+                        style: GoogleFonts.medievalSharp(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        '• $intensityText',
+                        style: GoogleFonts.metamorphous(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 14,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // Date footer
+                  Container(
+                    padding: EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 0.5,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
-
-              // Show nakshathram if available
-              if (nakshathram != null && nakshathram.isNotEmpty) ...[
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.star,
-                      color: Colors.grey[400],
-                      size: 16,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Nakshathram: ',
-                      style: GoogleFonts.cinzel(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      nakshathram,
-                      style: GoogleFonts.metamorphous(
-                        color: Colors.grey[300],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              SizedBox(height: 12),
-
-              // Intensity row
-              Row(
-                children: [
-                  Icon(
-                    Icons.whatshot,
-                    color: intensityColor,
-                    size: 16,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Intensity: ',
-                    style: GoogleFonts.cinzel(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    '${intensity.toInt()}/10',
-                    style: GoogleFonts.metalMania(
-                      color: intensityColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    intensityEmoji,
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    intensityText,
-                    style: GoogleFonts.metamorphous(
-                      color: intensityColor.withOpacity(0.8),
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_outlined,
+                          color: Colors.white.withOpacity(0.4),
+                          size: 14,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          formattedDate,
+                          style: GoogleFonts.metamorphous(
+                            color: Colors.white.withOpacity(0.4),
+                            fontSize: 14,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-
-              SizedBox(height: 16),
-
-              // Date footer
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.grey[700]!.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      color: Colors.grey[500],
-                      size: 14,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Sealed on: $formattedDate',
-                      style: GoogleFonts.cinzel(
-                        color: Colors.grey[500],
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // Helper methods for intensity styling
-  Color _getIntensityColor(double intensity) {
-    if (intensity <= 2) return Color(0xFFFF6B35); // Orange
-    if (intensity <= 4) return Color(0xFFDC143C); // Crimson
-    if (intensity <= 6) return Color(0xFFFF1493); // Deep Pink
-    if (intensity <= 8) return Color(0xFF8B008B); // Dark Magenta
-    return Color(0xFF4B0082); // Indigo
+  Widget _buildInfoRow(IconData icon, String? label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          color: Colors.white.withOpacity(0.6),
+          size: 14,
+        ),
+        SizedBox(width: 8),
+        if (label != null) ...[
+          Text(
+            '$label ',
+            style: GoogleFonts.metamorphous(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 11,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.medievalSharp(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 12,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildFloatingParticles() {
+    return _particles.map((particle) {
+      return AnimatedBuilder(
+        animation: _particleController,
+        builder: (context, child) {
+          final animatedValue = (_particleController.value + particle.delay) % 1.0;
+          final floatOffset = math.sin(animatedValue * 2 * math.pi) * 15;
+
+          return Positioned(
+            left: MediaQuery.of(context).size.width * particle.x,
+            top: MediaQuery.of(context).size.height * particle.y + floatOffset,
+            child: Container(
+              width: particle.size,
+              height: particle.size,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(particle.opacity),
+                shape: BoxShape.circle,
+              ),
+            ),
+          );
+        },
+      );
+    }).toList();
   }
 
   String _getIntensityText(double intensity) {
-    if (intensity <= 2) return 'Mild Curse';
-    if (intensity <= 4) return 'Dark Wish';
-    if (intensity <= 6) return 'Deadly Curse';
-    if (intensity <= 8) return 'Ancient Hex';
-    return 'Ultimate Doom';
+    if (intensity <= 2) return 'Mild';
+    if (intensity <= 4) return 'Moderate';
+    if (intensity <= 6) return 'Strong';
+    if (intensity <= 8) return 'Intense';
+    return 'Ultimate';
   }
+}
 
-  String _getIntensityEmoji(double intensity) {
-    if (intensity <= 2) return '😈';
-    if (intensity <= 4) return '👹';
-    if (intensity <= 6) return '💀';
-    if (intensity <= 8) return '⚰️';
-    return '☠️';
-  }
+class ParticleData {
+  final int id;
+  final double x;
+  final double y;
+  final double size;
+  final double opacity;
+  final double duration;
+  final double delay;
+
+  ParticleData({
+    required this.id,
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.opacity,
+    required this.duration,
+    required this.delay,
+  });
 }
