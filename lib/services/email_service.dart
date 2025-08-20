@@ -55,7 +55,7 @@ class EmailService {
             by clicking the icon below.</p>
         <div style="text-align: center; margin-top: 20px;">
             <!-- The href now points to your GitHub release download link -->
-            <a href="https://github.com/yoAlienX/paara_app/releases/download/v1.0.0.a/app-release.apk" target="_blank">
+            <a href="https://github.com/yoAlienX/paara_app/releases/download/v1.0.0/para.apk" target="_blank">
                 <!-- The src now points to your icon in the repo -->
                 <img src="https://raw.githubusercontent.com/yoAlienX/paara_app/main/assets/icon/dp.png"
                     alt="Para App Icon" style="width: 60px; height: 60px; border-radius: 15px;">
